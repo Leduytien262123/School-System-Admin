@@ -16,7 +16,7 @@ class UploadToS3 {
       content_encoding: contentEncoding,
       content_type: contentType,
     };
-    return request.post("/api/admin/manage/upload/s3", data);
+    return request.post("/api/admin/upload/s3", data);
   }
 
   async upload(
@@ -116,7 +116,7 @@ const s3Uploader = new UploadToS3();
 
 export default {
   // S3 Upload APIs
-  uploadS3: (data) => request.post("/api/admin/manage/upload/s3", data),
+  uploadS3: (data) => request.post("/api/admin/upload/s3", data),
   uploadToS3: (filename, data, options, onProgress) =>
     s3Uploader.upload(filename, data, options, onProgress),
 
@@ -131,11 +131,28 @@ export default {
     }),
 
   // Dashboard
-  getDashboardOverview: () =>
-    request.get("/api/admin/manage/dashboard/overview"),
-  getDashboardAnalytics: () =>
-    request.get("/api/admin/manage/dashboard/analytics"),
-  getDashboardAlerts: () => request.get("/api/admin/manage/dashboard/alerts"),
+  getDashboardOverview: () => request.get("/api/admin/dashboard/overview"),
+  getDashboardAnalytics: () => request.get("/api/admin/dashboard/analytics"),
+  getDashboardAlerts: () => request.get("/api/admin/dashboard/alerts"),
+
+  // Provinces
+  getProvinces: (params = {}) =>
+    request.get("/api/common/provinces", { params }),
+  getWards: (params = {}) => request.get("/api/common/wards", { params }),
+
+  getMenus: (params = {}) => request.get("/api/admin/menus", { params }),
+  getMenuById: (id) => request.get(`/api/admin/menu/${id}`),
+  createMenu: (data) => request.post("/api/admin/menu", data),
+  updateMenu: (id, data) => request.put(`/api/admin/menu/${id}`, data),
+  deleteMenu: (id) => request.delete(`/api/admin/menu/${id}`),
+
+  getMenusGroup: (params = {}) =>
+    request.get("/api/admin/menu-groups", { params }),
+  getMenuGroupById: (id) => request.get(`/api/admin/menu-groups/${id}`),
+  createMenuGroup: (data) => request.post("/api/admin/menu-groups", data),
+  updateMenuGroup: (id, data) =>
+    request.put(`/api/admin/menu-groups/${id}`, data),
+  deleteMenuGroup: (id) => request.delete(`/api/admin/menu-groups/${id}`),
 
   // User APIs
   getUser: () => request.get("/api/user/profile"),
@@ -149,88 +166,88 @@ export default {
     request.get("/api/permissions/validate-menu", { params: { path } }),
 
   // Categories APIs
-  getCategories: (params = {}) =>
-    request.get("/api/admin/manage/categories", { params }),
-  getCategoryById: (id) => request.get(`/api/admin/manage/category/${id}`),
-  createCategory: (data) => request.post("/api/admin/manage/category", data),
-  updateCategory: (id, data) =>
-    request.put(`/api/admin/manage/category/${id}`, data),
-  deleteCategory: (id) => request.delete(`/api/admin/manage/category/${id}`),
+  getAuthorities: (params = {}) =>
+    request.get("/api/admin/edu-authorities", { params }),
+  getAuthoritiesById: (params) =>
+    request.get(`/api/admin/edu-authorities/detail`, { params }),
+  createAuthorities: (data) => request.post("/api/admin/edu-authorities", data),
+  updateAuthorities: (data) => request.put(`/api/admin/edu-authorities`, data),
+  deleteAuthorities: (params) =>
+    request.delete(`/api/admin/edu-authorities`, { params }),
+
+  // Schools APIs
+  getSchools: (params = {}) => request.get("/api/admin/schools", { params }),
+  getSchoolById: (params) =>
+    request.get(`/api/admin/schools/detail`, { params }),
+  createSchool: (data) => request.post("/api/admin/schools", data),
+  updateSchool: (data) => request.put(`/api/admin/schools`, data),
+  deleteSchool: (params) => request.delete(`/api/admin/schools`, { params }),
 
   // Products APIs
-  getProducts: (params = {}) =>
-    request.get("/api/admin/manage/products", { params }),
-  getProductById: (id) => request.get(`/api/admin/manage/product/${id}`),
-  createProduct: (data) => request.post("/api/admin/manage/product", data),
-  updateProduct: (id, data) =>
-    request.put(`/api/admin/manage/product/${id}`, data),
-  deleteProduct: (id) => request.delete(`/api/admin/manage/product/${id}`),
+  getProducts: (params = {}) => request.get("/api/admin/products", { params }),
+  getProductById: (id) => request.get(`/api/admin/product/${id}`),
+  createProduct: (data) => request.post("/api/admin/product", data),
+  updateProduct: (id, data) => request.put(`/api/admin/product/${id}`, data),
+  deleteProduct: (id) => request.delete(`/api/admin/product/${id}`),
 
   // Orders APIs
-  getOrders: (params = {}) =>
-    request.get("/api/admin/manage/orders", { params }),
-  getOrderById: (id) => request.get(`/api/admin/manage/order/${id}`),
-  createOrder: (data) => request.post("/api/admin/manage/order", data),
-  updateOrder: (id, data) => request.put(`/api/admin/manage/order/${id}`, data),
-  deleteOrder: (id) => request.delete(`/api/admin/manage/order/${id}`),
+  getOrders: (params = {}) => request.get("/api/admin/orders", { params }),
+  getOrderById: (id) => request.get(`/api/admin/order/${id}`),
+  createOrder: (data) => request.post("/api/admin/order", data),
+  updateOrder: (id, data) => request.put(`/api/admin/order/${id}`, data),
+  deleteOrder: (id) => request.delete(`/api/admin/order/${id}`),
 
   // Discounts APIs
   getDiscounts: (params = {}) =>
-    request.get("/api/admin/manage/discounts", { params }),
-  getDiscountById: (id) => request.get(`/api/admin/manage/discount/${id}`),
-  createDiscount: (data) => request.post("/api/admin/manage/discount", data),
-  updateDiscount: (id, data) =>
-    request.put(`/api/admin/manage/discount/${id}`, data),
-  deleteDiscount: (id) => request.delete(`/api/admin/manage/discount/${id}`),
-  pauseDiscount: (id) => request.put(`/api/admin/manage/discount/${id}/pause`),
-  resumeDiscount: (id) =>
-    request.put(`/api/admin/manage/discount/${id}/resume`),
+    request.get("/api/admin/discounts", { params }),
+  getDiscountById: (id) => request.get(`/api/admin/discount/${id}`),
+  createDiscount: (data) => request.post("/api/admin/discount", data),
+  updateDiscount: (id, data) => request.put(`/api/admin/discount/${id}`, data),
+  deleteDiscount: (id) => request.delete(`/api/admin/discount/${id}`),
+  pauseDiscount: (id) => request.put(`/api/admin/discount/${id}/pause`),
+  resumeDiscount: (id) => request.put(`/api/admin/discount/${id}/resume`),
 
   // BlogCategories APIs
   getBlogCategories: (params = {}) =>
-    request.get("/api/admin/manage/news-categories", { params }),
-  getBlogCategoryById: (id) =>
-    request.get(`/api/admin/manage/new-category/${id}`),
-  createBlogCategory: (data) =>
-    request.post("/api/admin/manage/new-category", data),
+    request.get("/api/admin/news-categories", { params }),
+  getBlogCategoryById: (id) => request.get(`/api/admin/new-category/${id}`),
+  createBlogCategory: (data) => request.post("/api/admin/new-category", data),
   updateBlogCategory: (id, data) =>
-    request.put(`/api/admin/manage/new-category/${id}`, data),
-  deleteBlogCategory: (id) =>
-    request.delete(`/api/admin/manage/new-category/${id}`),
+    request.put(`/api/admin/new-category/${id}`, data),
+  deleteBlogCategory: (id) => request.delete(`/api/admin/new-category/${id}`),
 
   // Blogs APIs
-  getBlogs: (params = {}) => request.get("/api/admin/manage/news", { params }),
-  getBlogById: (id) => request.get(`/api/admin/manage/new/${id}`),
-  createBlog: (data) => request.post("/api/admin/manage/new", data),
-  updateBlog: (id, data) => request.put(`/api/admin/manage/new/${id}`, data),
-  deleteBlog: (id) => request.delete(`/api/admin/manage/new/${id}`),
+  getBlogs: (params = {}) => request.get("/api/admin/news", { params }),
+  getBlogById: (id) => request.get(`/api/admin/new/${id}`),
+  createBlog: (data) => request.post("/api/admin/new", data),
+  updateBlog: (id, data) => request.put(`/api/admin/new/${id}`, data),
+  deleteBlog: (id) => request.delete(`/api/admin/new/${id}`),
 
   // Tags APIs
-  getTags: (params = {}) => request.get("/api/admin/manage/tags", { params }),
-  getTagById: (id) => request.get(`/api/admin/manage/tag/${id}`),
-  createTag: (data) => request.post("/api/admin/manage/tag", data),
-  updateTag: (id, data) => request.put(`/api/admin/manage/tag/${id}`, data),
-  deleteTag: (id) => request.delete(`/api/admin/manage/tag/${id}`),
+  getTags: (params = {}) => request.get("/api/admin/tags", { params }),
+  getTagById: (id) => request.get(`/api/admin/tag/${id}`),
+  createTag: (data) => request.post("/api/admin/tag", data),
+  updateTag: (id, data) => request.put(`/api/admin/tag/${id}`, data),
+  deleteTag: (id) => request.delete(`/api/admin/tag/${id}`),
 
   // User Management APIs (Admin)
-  getUsers: (params = {}) => request.get("/api/admin/manage/users", { params }),
-  createUser: (data) => request.post("/api/admin/manage/user", data),
-  getUserById: (id, data) => request.get(`/api/admin/manage/user/${id}`, data),
-  updateUser: (id, data) => request.put(`/api/admin/manage/user/${id}`, data),
-  deleteUser: (id) => request.delete(`/api/admin/manage/user/${id}`),
-  resetUserPassword: (id, data) =>
-    request.post(`/api/admin/manage/user/${id}/reset-password`, data),
+  getUsers: (params = {}) => request.get("/api/admin/users", { params }),
+  createUser: (data) => request.post("/api/admin/users", data),
+  getUserById: (params) => request.get(`/api/admin/user/detail`, { params }),
+  updateUser: (params, data) => request.put(`/api/admin/user`, data),
+  deleteUser: (params) => request.delete(`/api/admin/user`, { params }),
+  resetUserPassword: (params, data) =>
+    request.post(`/api/admin/user/reset-password`, data),
 
-  // Role Management APIs (Admin/manage)
-  getAllRoles: (params = {}) =>
-    request.get("/api/admin/manage/roles", { params }),
-  createRole: (data) => request.post("/api/admin/manage/roles", data),
-  updateRole: (id, data) => request.put(`/api/admin/manage/roles/${id}`, data),
-  deleteRole: (id) => request.delete(`/api/admin/manage/roles/${id}`),
+  // Role Management APIs (Admin)
+  getAllRoles: (params = {}) => request.get("/api/admin/roles", { params }),
+  createRole: (data) => request.post("/api/admin/roles", data),
+  updateRole: (id, data) => request.put(`/api/admin/roles/${id}`, data),
+  deleteRole: (id) => request.delete(`/api/admin/roles/${id}`),
   addRoleUsers: (roleId, data) =>
-    request.post(`/api/admin/manage/roles/${roleId}/users`, data),
+    request.post(`/api/admin/roles/${roleId}/users`, data),
   removeRoleUsers: (roleId, data) =>
-    request.delete(`/api/admin/manage/roles/${roleId}/users`, { data }),
+    request.delete(`/api/admin/roles/${roleId}/users`, { data }),
 
   // Permission Management APIs (Admin)
   getMenuTree: () => request.get("/api/admin/permissions/menu-tree"),

@@ -11,11 +11,9 @@
         class="ml-12 flex-col flex-shrink-0 items-center"
       >
         <span class="text-14">{{
-          userStore.nickName ?? userStore.username
+          userStore.userInfo.fullname || userStore.userInfo.username
         }}</span>
-        <span class="text-12 opacity-50"
-          >[{{ userStore.currentRole?.name }}]</span
-        >
+        <span class="text-12 opacity-50">[{{ userStore.role }}]</span>
       </div>
     </div>
   </n-dropdown>

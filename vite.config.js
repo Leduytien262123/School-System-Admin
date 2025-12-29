@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: "0.0.0.0",
-      port: 3200,
+      port: 4000,
       open: false,
       proxy: {
         "/api": {

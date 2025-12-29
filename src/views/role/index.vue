@@ -1,226 +1,189 @@
 <template>
   <CommonPage>
-    <template #action>
-      <NButton type="primary" @click="handleAdd()">
-        <i class="i-material-symbols:add mr-4 text-18" />
-        Thêm vai trò
-      </NButton>
-    </template>
+    <n-card title="Quản lý quyền hạn">
+      <n-space vertical>
+        <!-- <div class="flex gap-12 mb-8 items-end">
+          <n-form-item label="Tìm kiếm quyền hạn" class="w-full">
+            <NaiveInput
+              clearable
+              placeholder="Nhập tìm kiếm ..."
+              v-model:value="searchQuery"
+              @keyup.enter="searchData"
+              @clear="
+                () => {
+                  searchQuery = '';
+                  searchData();
+                }
+              "
+            />
+          </n-form-item>
+          <ButtonSearch ref="buttonSearchRef" :searchData="loadSchools" />
+        </div> -->
 
-    <MeCrud
-      ref="$table"
-      v-model:query-items="queryItems"
-      :scroll-x="1200"
-      :columns="columns"
-      :get-data="api.read"
-    >
-      <MeQueryItem label="Tên vai trò" :label-width="80">
-        <n-input
-          v-model:value="queryItems.name"
-          type="text"
-          placeholder="Nhập tên vai trò"
-          clearable
+        <n-data-table
+          :columns="columns"
+          :data="schools"
+          :bordered="true"
+          :striped="true"
+          :loading="loading"
+          :scroll-x="1000"
         />
-      </MeQueryItem>
+        <Pagination
+          :total="total"
+          :page="1"
+          :limit="10"
+          :name="'quyền hạn'"
+          :pageSize="10"
+          @change="loadSchools"
+        />
+      </n-space>
+    </n-card>
 
-      <MeQueryItem label="Trạng thái" :label-width="50">
-        <n-select
-          v-model:value="queryItems.enable"
-          clearable
-          :options="[
-            { label: 'Kích hoạt', value: 1 },
-            { label: 'Tắt', value: 0 },
-          ]"
-        />
-      </MeQueryItem>
-    </MeCrud>
-    <MeModal ref="modalRef" width="520px">
-      <n-form
-        ref="modalFormRef"
-        label-placement="left"
-        label-align="left"
-        :label-width="80"
-        :model="modalForm"
-      >
-        <n-form-item
-          label="Tên vai trò"
-          path="name"
-          :rule="{
-            required: true,
-            message: 'Vui lòng nhập tên vai trò',
-            trigger: ['input', 'blur'],
-          }"
-        >
-          <n-input v-model:value="modalForm.name" />
-        </n-form-item>
-        <n-form-item
-          label="Mã vai trò"
-          path="code"
-          :rule="{
-            required: true,
-            message: 'Vui lòng nhập mã vai trò',
-            trigger: ['input', 'blur'],
-          }"
-        >
-          <n-input
-            v-model:value="modalForm.code"
-            :disabled="modalAction !== 'add'"
-          />
-        </n-form-item>
-        <n-form-item label="Quyền" path="permissionIds">
-          <n-tree
-            key-field="id"
-            label-field="name"
-            :selectable="false"
-            :data="permissionTree"
-            :checked-keys="modalForm.permissionIds"
-            :on-update:checked-keys="(keys) => (modalForm.permissionIds = keys)"
-            checkable
-            check-on-click
-            default-expand-all
-            class="cus-scroll max-h-200 w-full"
-          />
-        </n-form-item>
-        <n-form-item label="Trạng thái" path="enable">
-          <NSwitch v-model:value="modalForm.enable">
-            <template #checked> Kích hoạt </template>
-            <template #unchecked> Tắt </template>
-          </NSwitch>
-        </n-form-item>
-      </n-form>
-    </MeModal>
+    <ModalDetail
+      ref="detailModalRef"
+      v-model:show="showDetailModal"
+      :data="dataDetail"
+      :title="titleDetail"
+    />
   </CommonPage>
 </template>
 
 <script setup>
-defineOptions({ name: "RoleMgt" });
+import { NTag } from "naive-ui";
+import { renderButtonWithTooltip } from "@/utils/common";
+import IconPencil from "@/components/icon/Pencil.vue";
+import IconBin from "@/components/icon/Bin.vue";
 
-const router = useRouter();
+defineOptions({ name: "Schools" });
 
-const $table = ref(null);
-/** Tham số lọc QueryBar (tùy chọn) */
-const queryItems = ref({});
-
-onMounted(() => {
-  $table.value?.handleSearch();
-});
-
-const {
-  modalRef,
-  modalFormRef,
-  modalAction,
-  modalForm,
-  handleAdd,
-  handleDelete,
-  handleEdit,
-} = useCrud({
-  name: "Vai trò",
-  doCreate: api.create,
-  doDelete: api.delete,
-  doUpdate: api.update,
-  initForm: { enable: true },
-  refresh: (_, keepCurrentPage) => $table.value?.handleSearch(keepCurrentPage),
-});
+const schools = ref([]);
+const loading = ref(false);
+const searchQuery = ref("");
+const dataDetail = ref(null);
+const showDetailModal = ref(false);
+const titleDetail = ref("Chi tiết quyền hạn");
+const detailModalRef = ref(null);
+const buttonSearchRef = ref(null);
+const total = ref(0);
+const showModalAddEdit = ref(false);
+const editId = ref(null);
 
 const columns = [
-  { title: "Tên vai trò", key: "name" },
-  { title: "Mã vai trò", key: "code" },
   {
-    title: "Trạng thái",
-    key: "enable",
-    render: (row) =>
-      h(
-        NSwitch,
-        {
-          size: "small",
-          rubberBand: false,
-          value: row.enable,
-          loading: !!row.enableLoading,
-          disabled: row.code === "SUPER_ADMIN",
-          onUpdateValue: () => handleEnable(row),
-        },
-        {
-          checked: () => "Kích hoạt",
-          unchecked: () => "Tắt",
-        }
-      ),
+    title: "STT",
+    key: "stt",
+    fixed: "left",
+    width: 70,
+    render(row, index) {
+      return index + 1;
+    },
   },
   {
-    title: "Thao tác",
-    key: "actions",
-    width: 320,
-    align: "right",
-    fixed: "right",
+    title: "Tên",
+    key: "name",
+    width: 250,
+    ellipsis: true,
+  },
+  {
+    title: "Mã quyền hạn",
+    key: "code",
+    ellipsis: true,
+  },
+  {
+    title: "Trạng thái",
+    key: "status",
     render(row) {
-      return [
-        h(
-          NButton,
-          {
-            size: "small",
-            type: "primary",
-            secondary: true,
-            onClick: () =>
-              router.push({
-                path: `/pms/role/user/${row.id}`,
-                query: { roleName: row.name },
-              }),
-          },
-          {
-            default: () => "Phân quyền người dùng",
-            icon: () => h("i", { class: "i-fe:user-plus text-14" }),
-          }
-        ),
-        h(
-          NButton,
-          {
-            size: "small",
-            type: "primary",
-            style: "margin-left: 12px;",
-            disabled: row.code === "SUPER_ADMIN",
-            onClick: () => handleEdit(row),
-          },
-          {
-            default: () => "Sửa",
-            icon: () =>
-              h("i", { class: "i-material-symbols:edit-outline text-14" }),
-          }
-        ),
-
-        h(
-          NButton,
-          {
-            size: "small",
-            type: "error",
-            style: "margin-left: 12px;",
-            disabled: row.code === "SUPER_ADMIN",
-            onClick: () => handleDelete(row.id),
-          },
-          {
-            default: () => "Xóa",
-            icon: () =>
-              h("i", { class: "i-material-symbols:delete-outline text-14" }),
-          }
-        ),
-      ];
+      return h(
+        NTag,
+        { type: row.status ? "success" : "", size: "small" },
+        { default: () => (row.status ? "Hoạt động" : "Dừng hoạt động") }
+      );
     },
   },
 ];
 
-async function handleEnable(row) {
-  row.enableLoading = true;
+// Tải danh sách quyền hạn
+async function loadSchools() {
   try {
-    await api.update({ id: row.id, enable: !row.enable });
-    row.enableLoading = false;
-    $message.success("Thao tác thành công");
-    $table.value?.handleSearch();
+    loading.value = true;
+    const params = {
+      page: 1,
+      length: 10,
+    };
+    if (searchQuery.value) {
+      params.search = searchQuery.value;
+    }
+    const response = await api.getAllRoles(params);
+    schools.value = response.data?.data || [];
+    total.value = response.data?.data?.length || 0;
   } catch (error) {
-    console.error(error);
-    row.enableLoading = false;
+    $message.error("Không thể tải danh sách quyền hạn");
+  } finally {
+    loading.value = false;
   }
 }
 
-const permissionTree = ref([]);
-api
-  .getAllPermissionTree()
-  .then(({ data = [] }) => (permissionTree.value = data));
+// Xem chi tiết quyền hạn
+async function viewCategory(id) {
+  showDetailModal.value = true;
+  await nextTick();
+  detailModalRef.value?.focus && detailModalRef.value.focus();
+  try {
+    const response = await api.getCategoryById(id);
+    dataDetail.value = response.data?.data || null;
+  } catch (error) {
+    $message.error("Không thể tải chi tiết quyền hạn");
+  }
+}
+
+// Xóa quyền hạn
+function deleteCategory(id) {
+  $dialog.warning({
+    title: "Xác nhận xóa",
+    content: "Bạn có chắc chắn muốn xóa quyền hạn này?",
+    positiveText: "Xóa",
+    negativeText: "Hủy",
+    onPositiveClick: async () => {
+      try {
+        await api.deleteSchool({
+          id,
+        });
+        $message.success("Đã xóa quyền hạn thành công");
+        loadSchools();
+      } catch (error) {
+        console.error("Lỗi khi xóa quyền hạn:", error);
+        $message.error("Không thể xóa quyền hạn");
+      }
+    },
+  });
+}
+
+// Thêm quyền hạn mới
+function handleAddEditSchool(id) {
+  if (id) {
+    editId.value = id || null;
+  }
+  showModalAddEdit.value = true;
+}
+
+watch(
+  () => showModalAddEdit.value,
+  (val) => {
+    if (!val) {
+      editId.value = null;
+    }
+  }
+);
+
+onMounted(() => {
+  loadSchools();
+});
 </script>
+
+<style scoped>
+:deep(.n-form-item .n-form-item-feedback-wrapper) {
+  min-height: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+</style>

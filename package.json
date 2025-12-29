@@ -55,7 +55,7 @@
     "vue3-intro-step": "^1.0.5"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged"
+    "pre-commit": "yarn lint-staged"
   },
   "lint-staged": {
     "*": "eslint --fix"

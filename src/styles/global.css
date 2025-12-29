@@ -146,7 +146,3 @@ html:not(.dark) .n-empty .n-empty__icon svg {
   transition-duration: 300ms;
   justify-content: space-between !important;
 }
-
-/* i.n-base-icon {
-  color: white;
-} */

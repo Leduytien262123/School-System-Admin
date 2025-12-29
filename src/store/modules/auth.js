@@ -10,7 +10,6 @@ import { decodeJWT, isTokenExpired, getTokenExpirationTime } from "@/utils";
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     accessToken: undefined,
-    user: null,
   }),
   getters: {
     isLoggedIn: (state) => {
@@ -28,9 +27,9 @@ export const useAuthStore = defineStore("auth", {
   },
   actions: {
     setToken(data) {
-      if (data.success && data.data && data.data.token) {
-        const token = data.data.token;
-        const user = data.data.user;
+      if (data?.success && data?.data && data?.data?.accessToken) {
+        const token = data.data.accessToken;
+        const user = data.data.user; // Lấy toàn bộ thông tin user từ API
 
         // Decode token để kiểm tra
         const tokenInfo = decodeJWT(token);
@@ -44,15 +43,14 @@ export const useAuthStore = defineStore("auth", {
           return false;
         }
 
-        // Lưu token và user
+        // Lưu token
         this.accessToken = token;
-        this.user = user;
 
         // Lưu token vào cookie với thời hạn theo exp time của token
         const expirationSeconds = tokenInfo.exp - Math.floor(Date.now() / 1000);
         document.cookie = `auth_token=${token}; path=/; max-age=${expirationSeconds}; SameSite=Lax`;
 
-        // Cập nhật user store
+        // Lưu toàn bộ thông tin user vào user store (sẽ tự động persist)
         const userStore = useUserStore();
         userStore.setUser(user);
 
@@ -82,38 +80,19 @@ export const useAuthStore = defineStore("auth", {
 
           this.accessToken = token;
 
-          // Decode token để lấy thông tin user
+          const userStore = useUserStore();
+          if (userStore.userInfo) {
+            return true;
+          }
+
           const tokenInfo = decodeJWT(token);
           if (tokenInfo) {
-            const userStore = useUserStore();
-            const persisted =
-              userStore.userInfo ||
-              (function () {
-                try {
-                  const raw = localStorage.getItem("userInfo");
-                  return raw ? JSON.parse(raw) : null;
-                } catch (e) {
-                  return null;
-                }
-              })();
-
-            if (persisted && persisted.id === tokenInfo.user_id) {
-              this.user = persisted;
-              userStore.setUser(persisted);
-            } else {
-              const built = {
-                id: tokenInfo.user_id,
-                username: tokenInfo.username,
-                role: tokenInfo.role,
-                email: "",
-                full_name: tokenInfo.username,
-                avatar: persisted?.avatar || "",
-                is_active: true,
-              };
-              this.user = built;
-              userStore.setUser(built);
-            }
-
+            const user = {
+              id: tokenInfo.user_id,
+              username: tokenInfo.username,
+              role: tokenInfo.role,
+            };
+            userStore.setUser(user);
             return true;
           }
         }
@@ -138,7 +117,6 @@ export const useAuthStore = defineStore("auth", {
 
     resetToken() {
       this.accessToken = undefined;
-      this.user = null;
       // Xóa token khỏi cookie
       document.cookie =
         "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
@@ -170,15 +148,14 @@ export const useAuthStore = defineStore("auth", {
       this.resetToken();
     },
     async logout() {
-      // Đánh dấu đây là logout để không hiển thị thông báo hết hạn
       sessionStorage.setItem("isFromLogout", "true");
 
-      // Chỉ cần xóa token và redirect, không cần gọi API
       this.resetLoginState();
       this.toLogin();
     },
   },
   persist: {
     key: "vue-naivue-admin_auth",
+    paths: ["accessToken"],
   },
 });

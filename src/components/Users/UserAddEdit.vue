@@ -13,23 +13,31 @@ const route = useRoute();
 const userStore = useUserStore();
 const context = computed(() => {
   if (route.path.includes("staff")) return "nhân sự";
-  if (route.path.includes("user")) return "khách hàng";
+  if (route.path.includes("user")) return "người dùng";
 });
 const isEdit = computed(() => !!props.id);
 const loading = ref(false);
 const fileList = ref([]);
+const listRoles = ref([]);
+const listAuthorities = ref([]);
+const listSchools = ref([]);
 
 const emit = defineEmits(["update:avatar"]);
 
 const formValue = ref({
-  role: null,
+  username: "",
+  password: "1234556aA@",
+  fullname: "",
+  code: "",
+  email: "",
+  phoneNumber: "",
+  address: "",
+  roleId: null,
+  eduAuthorityId: null,
+  schoolId: null,
+  status: true,
   creator_id: userStore.userId,
   creator_name: userStore.username,
-  full_name: "",
-  phone: "",
-  email: "",
-  address: "",
-  addresses: [""],
 });
 
 const rules = {
@@ -40,7 +48,61 @@ const rules = {
       trigger: ["blur", "input"],
     },
   ],
-  full_name: [
+  username: [
+    {
+      required: true,
+      trigger: ["blur", "input"],
+      validator(rule, value) {
+        const username = String(value || "").trim();
+        if (!username) return new Error("Vui lòng nhập tên đăng nhập");
+        if (username.length < 6)
+          return new Error("Tên đăng nhập phải có ít nhất 6 ký tự");
+        if (username.length > 50)
+          return new Error("Tên đăng nhập không được quá 50 ký tự");
+        if (!/^[a-zA-Z0-9_]+$/.test(username))
+          return new Error("Tên đăng nhập chỉ chứa chữ, số và dấu gạch dưới");
+        return true;
+      },
+    },
+  ],
+  password: [
+    {
+      required: true,
+      trigger: ["blur", "input"],
+      validator(rule, value) {
+        if (isEdit.value) return true; // Không bắt buộc khi edit
+        const password = String(value || "").trim();
+        if (!password) return new Error("Vui lòng nhập mật khẩu");
+        if (password.length < 8)
+          return new Error("Mật khẩu phải có ít nhất 8 ký tự");
+        if (!/(?=.*[a-z])/.test(password))
+          return new Error("Mật khẩu phải có ít nhất 1 chữ thường");
+        if (!/(?=.*[A-Z])/.test(password))
+          return new Error("Mật khẩu phải có ít nhất 1 chữ hoa");
+        if (!/(?=.*\d)/.test(password))
+          return new Error("Mật khẩu phải có ít nhất 1 số");
+        if (!/(?=.*[@$!%*?&#])/.test(password))
+          return new Error(
+            "Mật khẩu phải có ít nhất 1 ký tự đặc biệt (@$!%*?&#)"
+          );
+        return true;
+      },
+    },
+  ],
+  code: [
+    {
+      required: true,
+      trigger: ["blur", "input"],
+      validator(rule, value) {
+        const code = String(value || "").trim();
+        if (!code) return new Error("Vui lòng nhập mã");
+        if (code.length < 4) return new Error("Mã phải có ít nhất 4 ký tự");
+        if (code.length > 20) return new Error("Mã không được quá 20 ký tự");
+        return true;
+      },
+    },
+  ],
+  fullname: [
     {
       required: true,
       trigger: ["blur", "input"],
@@ -56,19 +118,17 @@ const rules = {
       trigger: ["blur", "input"],
     },
   ],
-  phone: [
+  phoneNumber: [
     {
       required: true,
       trigger: ["blur", "input"],
       validator(rule, value) {
         const phone = String(value || "").trim();
 
-        // Kiểm tra nếu trống
         if (!phone) {
           return new Error("Vui lòng nhập số điện thoại");
         }
 
-        // Đầu số hợp lệ của nhà mạng Việt Nam
         const validPrefixes = [
           "032",
           "033",
@@ -77,21 +137,21 @@ const rules = {
           "036",
           "037",
           "038",
-          "039", // Viettel
+          "039",
           "070",
           "076",
           "077",
           "078",
-          "079", // Mobifone
+          "079",
           "081",
           "082",
           "083",
           "084",
           "085",
-          "086", // Vinaphone
+          "086",
           "056",
-          "058", // Vietnamobile
-          "059", // Gmobile
+          "058",
+          "059",
           "090",
           "093",
           "089",
@@ -102,17 +162,15 @@ const rules = {
           "097",
           "096",
           "091",
-          "095", // các đầu số cũ
+          "095",
         ];
 
-        // Kiểm tra định dạng cơ bản (10 số, bắt đầu bằng 0)
         if (!/^0\d{9}$/.test(phone)) {
           return new Error(
             "Số điện thoại định dạng không chính xác (phải gồm 10 số và bắt đầu bằng 0)"
           );
         }
 
-        // Kiểm tra đầu số hợp lệ
         const prefix = phone.substring(0, 3);
         if (!validPrefixes.includes(prefix)) {
           return new Error(
@@ -131,12 +189,10 @@ const rules = {
       validator(rule, value) {
         const email = String(value || "").trim();
 
-        // Kiểm tra nếu trống
         if (!email) {
           return new Error("Vui lòng nhập email");
         }
 
-        // Kiểm tra định dạng email cơ bản (không chỉ giới hạn @gmail.com)
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(email)) {
           return new Error("Email không đúng định dạng");
@@ -151,15 +207,52 @@ const rules = {
       required: true,
       trigger: ["blur", "input"],
       validator(rule, value) {
-        const address = formValue.value.address;
+        const address = String(value || "").trim();
         if (!address) {
           return new Error("Vui lòng nhập địa chỉ");
         }
-        if (address.length < 20) {
-          return new Error("Địa chỉ phải có ít nhất 20 ký tự");
+        if (address.length < 10) {
+          return new Error("Địa chỉ phải có ít nhất 10 ký tự");
         }
         if (address.length > 255) {
           return new Error("Địa chỉ không được quá 255 ký tự");
+        }
+        return true;
+      },
+    },
+  ],
+  roleId: [
+    {
+      required: true,
+      message: "Vui lòng chọn vai trò",
+      trigger: ["blur", "change"],
+    },
+  ],
+  schoolId: [
+    {
+      trigger: ["blur", "change"],
+      validator(_, value) {
+        // Chỉ bắt buộc khi role là SCHOOL_ADMIN
+        const selectedRole = listRoles.value.find(
+          (r) => r.value === formValue.value.roleId
+        );
+        if (selectedRole?.code === "SCHOOL_ADMIN" && !value) {
+          return new Error("Trường học không được để trống");
+        }
+        return true;
+      },
+    },
+  ],
+  eduAuthorityId: [
+    {
+      trigger: ["blur", "change"],
+      validator(_, value) {
+        // Chỉ bắt buộc khi role là DEPARTMENT_ADMIN
+        const selectedRole = listRoles.value.find(
+          (r) => r.value === formValue.value.roleId
+        );
+        if (selectedRole?.code === "DEPARTMENT_ADMIN" && !value) {
+          return new Error("Sở giáo dục không được để trống");
         }
         return true;
       },
@@ -188,34 +281,94 @@ watch(
 );
 
 const formRef = ref(null);
-const updateAddressRef = ref(null);
+
+const getListRoles = async () => {
+  const resData = await api.getAllRoles();
+  listRoles.value = resData.data?.data?.map((role) => ({
+    label: role.name,
+    value: role.id,
+    code: role.code,
+  }));
+};
+
+const getListAuthorities = async () => {
+  const resData = await api.getAuthorities();
+  listAuthorities.value = resData.data?.data?.map((authority) => ({
+    label: authority.name,
+    value: authority.id,
+  }));
+};
+
+const getListSchools = async () => {
+  const resData = await api.getSchools();
+  listSchools.value = resData.data?.data?.map((school) => ({
+    label: school.name,
+    value: school.id,
+  }));
+};
 
 async function loadUser() {
   if (!props.id) return;
 
   try {
     loading.value = true;
-    const response = await api.getUserById(props.id);
+    const response = await api.getUserById({ id: props.id });
     if (response.data.success) {
       const d = response.data.data;
-      formValue.value = {
-        role: d.role || null,
-        creator_id: d.creator_id,
-        creator_name: d.creator_name,
-        full_name: d.full_name || "",
-        phone: d.phone || "",
-        email: d.email || "",
-        addresses: d.addresses?.map((a) => a.address) || [""],
-      };
 
-      if (d?.avatar && Array.isArray(d.avatar) && d.avatar.length > 0) {
-        fileList.value = d.avatar.map((img, idx) => ({
-          url: img.url || "",
-          alt: img.alt || "",
-          uid: `init-${idx}`,
-          name: img.alt || "avatar",
-          status: "finished",
-        }));
+      // Map API fields into reactive formValue (keep reference)
+      Object.assign(formValue.value, {
+        id: d.id ?? null,
+        username: d.username ?? "",
+        fullname: d.fullname ?? "",
+        code: d.code ?? "",
+        email: d.email ?? "",
+        phoneNumber: d.phone_number ?? d.phone ?? "",
+        address: d.address ?? "",
+        status: !!d.status,
+        creator_id: d.creator_id ?? formValue.value.creator_id,
+        creator_name: d.creator_name ?? formValue.value.creator_name,
+      });
+
+      // Map role code -> roleId (requires listRoles already loaded)
+      const roleCode = d.role ?? d.role_code ?? null;
+      if (roleCode) {
+        const roleItem = listRoles.value.find(
+          (r) => r.code === roleCode || r.value === roleCode
+        );
+        formValue.value.roleId = roleItem ? roleItem.value : null;
+      } else {
+        formValue.value.roleId = null;
+      }
+
+      // Map optional ids if present
+      formValue.value.eduAuthorityId =
+        d.edu_authority_id ?? d.eduAuthorityId ?? d.authority_id ?? null;
+      formValue.value.schoolId = d.school_id ?? d.schoolId ?? null;
+
+      // Map avatar (handle string or array)
+      if (d?.avatar) {
+        if (Array.isArray(d.avatar) && d.avatar.length > 0) {
+          fileList.value = d.avatar.map((img, idx) => ({
+            url: img.url || img || "",
+            alt: img.alt || "",
+            uid: `init-${idx}`,
+            name: img.alt || "avatar",
+            status: "finished",
+          }));
+        } else if (typeof d.avatar === "string" && d.avatar) {
+          fileList.value = [
+            {
+              url: d.avatar,
+              alt: "",
+              uid: `init-0`,
+              name: "avatar",
+              status: "finished",
+            },
+          ];
+        } else {
+          fileList.value = [];
+        }
       } else {
         fileList.value = [];
       }
@@ -228,14 +381,19 @@ async function loadUser() {
   }
 }
 
-onMounted(() => {
-  // Gán người tạo khi tạo mới
+onMounted(async () => {
   if (!isEdit.value) {
     formValue.value.creator_id = userStore.userId;
     formValue.value.creator_name = userStore.username;
   }
+
+  // Load reference data first so loadUser can map role code -> roleId
+  await getListRoles();
+  await getListSchools();
+  await getListAuthorities();
+
   if (isEdit.value) {
-    loadUser();
+    await loadUser();
   }
 });
 
@@ -249,35 +407,15 @@ async function handleSave() {
   try {
     await formRef.value?.validate();
 
-    if (
-      userStore.role !== "owner" &&
-      updateAddressRef.value &&
-      !updateAddressRef.value.handleSaveRequest()
-    ) {
-      return;
-    }
-
-    if (
-      userStore.role !== "owner" &&
-      (formValue.value.addresses.length === 0 ||
-        !formValue.value.addresses[0].trim())
-    ) {
-      $message.error("Vui lòng nhập địa chỉ");
-      return;
-    }
-
     loading.value = true;
 
     const body = {
       ...formValue.value,
       creator_id: userStore?.userId,
-      addresses: formValue.value?.addresses?.filter(
-        (addr) => addr.trim() !== ""
-      ),
-      avatar: fileList.value.map((file) => ({
-        url: file.url || "",
-        alt: file.alt || "",
-      })),
+      avatar:
+        fileList.value && fileList.value.length
+          ? fileList.value[0].url || ""
+          : "",
     };
 
     if (isEdit.value) {
@@ -305,15 +443,11 @@ async function handleSave() {
 }
 
 function handleInput() {
-  if (formValue.value.full_name) {
-    formValue.value.full_name = formValue.value.full_name
+  if (formValue.value.fullname) {
+    formValue.value.fullname = formValue.value.fullname
       .trim()
       .replace(/\s+/g, " ");
   }
-}
-
-function handleAddressChange(val) {
-  formValue.value.address = val;
 }
 
 function handleUploadSuccess(file) {
@@ -353,11 +487,43 @@ function handleUpdateFileList(newFileList) {
 
     <n-card :title="isEdit ? `Sửa ${context}` : `Thêm ${context}`">
       <n-form :model="formValue" :rules="rules" ref="formRef">
-        <n-grid cols="3" x-gap="16" y-gap="16">
+        <n-grid responsive="screen" cols="1 m:2 l:3 xl:4" x-gap="16" y-gap="16">
           <n-grid-item span="1">
-            <n-form-item :label="`Tên ${context}`" path="full_name">
+            <n-form-item label="Tên đăng nhập" path="username">
               <NaiveInput
-                v-model:value="formValue.full_name"
+                v-model:value="formValue.username"
+                placeholder="Nhập tên đăng nhập"
+                :disabled="isEdit"
+              />
+            </n-form-item>
+          </n-grid-item>
+
+          <n-grid-item span="1" v-if="!isEdit">
+            <n-form-item label="Mật khẩu" path="password">
+              <NaiveInput
+                v-model:value="formValue.password"
+                type="password"
+                show-password-on="click"
+                placeholder="Nhập mật khẩu"
+                :clearable="false"
+              />
+            </n-form-item>
+          </n-grid-item>
+
+          <n-grid-item span="1">
+            <n-form-item label="Mã" path="code">
+              <NaiveInput
+                v-model:value="formValue.code"
+                placeholder="Nhập mã"
+                :sku="formValue.code"
+              />
+            </n-form-item>
+          </n-grid-item>
+
+          <n-grid-item span="1">
+            <n-form-item :label="`Tên ${context}`" path="fullname">
+              <NaiveInput
+                v-model:value="formValue.fullname"
                 @blur="handleInput"
                 :placeholder="`Nhập tên ${context}`"
               />
@@ -365,11 +531,66 @@ function handleUpdateFileList(newFileList) {
           </n-grid-item>
 
           <n-grid-item span="1">
-            <n-form-item label="Số điện thoại" path="phone">
+            <n-form-item label="Chọn vai trò" path="roleId">
+              <NaiveSelect
+                v-model:value="formValue.roleId"
+                placeholder="Chọn vai trò"
+                :options="listRoles"
+              />
+            </n-form-item>
+          </n-grid-item>
+
+          <n-grid-item
+            span="1"
+            v-if="
+              formValue.roleId &&
+              listRoles.find((r) => r.value === formValue.roleId)?.code ===
+                'DEPARTMENT_ADMIN'
+            "
+          >
+            <n-form-item label="Chọn sở giáo dục" path="eduAuthorityId">
+              <NaiveSelect
+                v-model:value="formValue.eduAuthorityId"
+                placeholder="Chọn sở giáo dục"
+                :options="listAuthorities"
+              />
+            </n-form-item>
+          </n-grid-item>
+
+          <n-grid-item
+            span="1"
+            v-if="
+              formValue.roleId &&
+              listRoles.find((r) => r.value === formValue.roleId)?.code ===
+                'SCHOOL_ADMIN'
+            "
+          >
+            <n-form-item label="Chọn trường học" path="schoolId">
+              <NaiveSelect
+                v-model:value="formValue.schoolId"
+                placeholder="Chọn trường học"
+                :options="listSchools"
+              />
+            </n-form-item>
+          </n-grid-item>
+
+          <n-grid-item span="1">
+            <n-form-item label="Email" path="email">
               <NaiveInput
-                v-model:value="formValue.phone"
+                v-model:value="formValue.email"
+                placeholder="Nhập email"
+              />
+            </n-form-item>
+          </n-grid-item>
+
+          <n-grid-item span="1">
+            <n-form-item label="Số điện thoại" path="phoneNumber">
+              <NaiveInput
+                v-model:value="formValue.phoneNumber"
                 @input="
-                  formValue.phone = $event.replace(/[^\d]/g, '').slice(0, 10)
+                  formValue.phoneNumber = $event
+                    .replace(/[^\d]/g, '')
+                    .slice(0, 10)
                 "
                 :input-props="{
                   inputmode: 'numeric',
@@ -381,38 +602,34 @@ function handleUpdateFileList(newFileList) {
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item span="1">
-            <n-form-item label="Email" path="email">
+          <n-grid-item
+            :span="
+              formValue.roleId &&
+              listRoles.find((r) => r.value === formValue.roleId)?.code ===
+                'SUPER_ADMIN'
+                ? '2'
+                : '3'
+            "
+          >
+            <n-form-item label="Địa chỉ" path="address">
               <NaiveInput
-                v-model:value="formValue.email"
-                @input="formValue.email = $event.replace(/[^\d]/g, '')"
-                placeholder="Nhập email"
+                v-model:value="formValue.address"
+                placeholder="Nhập địa chỉ"
               />
             </n-form-item>
           </n-grid-item>
 
-          <n-grid-item span="3">
-            <n-form-item
-              label="Địa chỉ"
-              :path="formValue.role === 'owner' ? '' : 'address'"
-            >
-              <UpdateAddress
-                ref="updateAddressRef"
-                :addresses="formValue.addresses"
-                @update:addresses="formValue.addresses = $event"
-                @input-address-change="handleAddressChange"
-              />
+          <n-grid-item span="1">
+            <n-form-item label="Trạng thái">
+              <n-switch v-model:value="formValue.status">
+                <template #checked> Hoạt động </template>
+                <template #unchecked> Ngưng hoạt động </template>
+              </n-switch>
             </n-form-item>
           </n-grid-item>
 
           <n-grid-item span="3">
             <n-form-item label="Chọn ảnh đại diện" path="avatar">
-              <!-- <NaiveUpload
-                :file-list="avatar"
-                @update:file-list="emit('update:avatar', $event)"
-                :max="1"
-                list-type="image-card"
-              /> -->
               <NaiveUpload
                 :file-list="fileList"
                 @update:file-list="handleUpdateFileList"

@@ -51,7 +51,7 @@ import IconPencil from "@/components/icon/Pencil.vue";
 import IconBin from "@/components/icon/Bin.vue";
 import userEmpty from "@/public/img/user_empty.jpg";
 
-defineOptions({ name: "ProductManagement" });
+defineOptions({ name: "Users" });
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -66,7 +66,7 @@ const dataDetail = ref(null);
 const showDetailModal = ref(false);
 const context = computed(() => {
   if (route.path.includes("staff")) return "nhân sự";
-  if (route.path.includes("user")) return "khách hàng";
+  if (route.path.includes("user")) return "người dùng";
 });
 const titleDetail = ref(`Chi tiết ${context.value}`);
 const detailModalRef = ref(null);
@@ -85,9 +85,9 @@ const columns = [
   },
   {
     title: `Tên ${context.value}`,
-    key: "full_name",
+    key: "fullname",
     fixed: "left",
-    width: 300,
+    width: 350,
     ellipsis: true,
     render(row) {
       return h("div", { class: "flex items-center gap-12" }, [
@@ -97,7 +97,7 @@ const columns = [
           class: "rounded-full min-w-40px max-w-40px min-h-40px max-h-40px",
         }),
         h("div", { class: "flex flex-col text-[14px]" }, [
-          h("span", { class: "font-semibold" }, row?.full_name || ""),
+          h("span", { class: "font-semibold" }, row?.fullname || ""),
           h("span", { class: "text-gray-500" }, row?.phone || ""),
           h("span", { class: "text-gray-500" }, row?.email || ""),
         ]),
@@ -106,12 +106,12 @@ const columns = [
   },
   {
     title: "Trạng thái",
-    key: "is_active",
+    key: "status",
     render(row) {
       return h(
         NTag,
-        { type: row.is_active ? "success" : "", size: "small" },
-        { default: () => (row.is_active ? "Hoạt động" : "Dừng hoạt động") }
+        { type: row.status ? "success" : "", size: "small" },
+        { default: () => (row.status ? "Hoạt động" : "Dừng hoạt động") }
       );
     },
   },
@@ -184,7 +184,7 @@ async function loadUsers() {
     }
     const response = await api.getUsers(params);
     if (response.data.success) {
-      users.value = response.data?.data?.users || [];
+      users.value = response.data?.data || [];
       loading.value = false;
     }
   } catch (error) {
@@ -219,7 +219,7 @@ function deleteUser(id) {
     negativeText: "Hủy",
     onPositiveClick: async () => {
       try {
-        await api.deleteUser(id);
+        await api.deleteUser({ id });
         $message.success(`Đã xóa ${context.value} thành công`);
         loadUsers();
       } catch (error) {

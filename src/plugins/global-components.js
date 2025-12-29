@@ -12,6 +12,7 @@ import NaiveSelect from "@/components/Base/NaiveSelect.vue";
 import NaiveInput from "@/components/Base/NaiveInput.vue";
 import NaiveDatePicker from "@/components/Base/NaiveDatePicker.vue";
 import NaiveInputNumber from "@/components/Base/NaiveInputNumber.vue";
+import NaiveModal from "@/components/Base/NaiveModal.vue";
 import BaseAddReload from "@/components/Base/AddReload.vue";
 import BaseButtonBack from "@/components/Base/ButtonBack.vue";
 import UpdateAddress from "@/components/Base/UpdateAddress.vue";
@@ -39,6 +40,7 @@ export function setupGlobalComponents(app) {
     NaiveUpload,
     NaiveDatePicker,
     NaiveInputNumber,
+    NaiveModal,
     BaseAddReload,
     BaseButtonBack,
     UpdateAddress,
