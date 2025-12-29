@@ -181,7 +181,7 @@ export const basicRoutes = [
     meta: { title: "Quản lý menu", key: "menu" },
   },
   {
-    name: "modules-menu",
+    name: "modules-menu-groups",
     path: "/modules/menu-groups",
     component: () => import("@/views/modules/menu-groups/index.vue"),
     meta: { title: "Nhóm menu", key: "menu-groups" },
